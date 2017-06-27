@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="gnome-radio">
+    <schema path="/org/gnome/shell/extensions/gnome-radio/" id="org.gnome.shell.extensions.gnome-radio">
+        <key name="volume" type="i">
+            <default>100</default>
+            <summary>Volume</summary>
+            <description>Adjust player volume</description>
+        </key>
+        <key name="notify-title" type="b">
+            <default>true</default>
+            <summary>Notify title change</summary>
+            <description>Display notification on player title change</description>
+        </key>
+        <key name="notify-error" type="b">
+            <default>true</default>
+            <summary>Notify error</summary>
+            <description>Display notification on player error</description>
+        </key>
+    </schema>
+</schemalist>

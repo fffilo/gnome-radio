@@ -1,0 +1,13 @@
+{
+    "url": "https://github.com/fffilo/gnome-radio",
+    "description": "Listen to an internet radio stream",
+    "email": "fffilo666@gmail.com",
+    "gettext-domain": "gnome-radio",
+	"license": "GPL",
+	"maintainer": "Franjo Filo",
+    "name": "GNOME Radio",
+    "settings-schema": "org.gnome.shell.extensions.gnome-radio",
+    "shell-version": ["3.18.5"],
+    "uuid": "gnome-radio@gnome-shell-exstensions.fffilo.github.com",
+    "version": "0.1.0"
+}

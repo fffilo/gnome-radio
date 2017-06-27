@@ -1,0 +1,12 @@
+#gnome-shell-extension_gnome-radio_media-preferences-page-settings {}
+#gnome-shell-extension_gnome-radio_media-preferences-page-settings-row-notify-title {}
+#gnome-shell-extension_gnome-radio_media-preferences-page-settings-row-notify-error {}
+
+#gnome-shell-extension_gnome-radio_media-preferences-page-channels {}
+#gnome-shell-extension_gnome-radio_media-preferences-page-channels GtkLabel { color: gray; }
+
+#gnome-shell-extension_gnome-radio_media-preferences-page-about { }
+#gnome-shell-extension_gnome-radio_media-preferences-page-about-title { padding-bottom: 1em; font-weight: bold; }
+#gnome-shell-extension_gnome-radio_media-preferences-page-about-description { padding: 1em; }
+#gnome-shell-extension_gnome-radio_media-preferences-page-about-author { padding: 0; }
+#gnome-shell-extension_gnome-radio_media-preferences-page-about-webpage { padding: 0; }

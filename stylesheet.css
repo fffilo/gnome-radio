@@ -1,0 +1,8 @@
+#gnome-shell-extension_gnome-radio_media-menu { width: 360px; }
+#gnome-shell-extension_gnome-radio_media-menu_button { width: 1.5em; margin: 0.2em 0 0.2em 1.5em; }
+#gnome-shell-extension_gnome-radio_media-menu_button_icon{}
+#gnome-shell-extension_gnome-radio_media-menu.disabled #gnome-shell-extension_gnome-radio_media-menu_button { color: gray; }
+#gnome-shell-extension_gnome-radio_media-menu_desc { padding: 0 1.5em; }
+#gnome-shell-extension_gnome-radio_media-menu_desc_title { font-weight: bold; }
+#gnome-shell-extension_gnome-radio_media-menu_desc_state { margin-top: 0.3em; font-size: 0.7em; }
+#gnome-shell-extension_gnome-radio_media-menu_desc_tags {}
