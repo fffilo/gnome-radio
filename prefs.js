@@ -10,6 +10,7 @@ const GdkPixbuf = imports.gi.GdkPixbuf;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 const Convenience = Me.imports.convenience;
+const Config = Me.imports.config;
 const Lib = Me.imports.lib;
 const _ = Lib.translate;
 
@@ -66,8 +67,8 @@ const Frame = new GObject.Class({
      * @return {Void}
      */
     _init_settings: function() {
-        this._settings = Convenience.getSettings();
-        this._settings.connect('changed', Lang.bind(this, this._handle_settings_changed));
+        this.settings = Convenience.getSettings();
+        this.settings.connect('changed', Lang.bind(this, this._handle_settings_changed));
     },
 
     /**
@@ -85,22 +86,23 @@ const Frame = new GObject.Class({
 
         this.prefs = {};
         page = new Page({ name: 'gnome-shell-extension_gnome-radio_media-preferences-page-settings' });
-        this.prefs.volume = new SpinButton('volume', this._settings.get_int('volume'), _("Volume"), _("Adjust player volume"));
+        this.prefs.volume = new SpinButton('volume', this.settings.get_int('volume'), _("Volume"), _("Adjust player volume"));
         this.prefs.volume.name = 'gnome-shell-extension_gnome-radio_media-preferences-page-settings-row-volume';
         this.prefs.volume.connect('changed', Lang.bind(this, this._handle_widget_change));
         page.add(this.prefs.volume);
-        this.prefs.notify_title = new Switch('notify-title', this._settings.get_boolean('notify-title'), _("Notify title change"), _("Display notification on player title change"));
+        this.prefs.notify_title = new Switch('notify-title', this.settings.get_boolean('notify-title'), _("Notify title change"), _("Display notification on player title change"));
         this.prefs.notify_title.name = 'gnome-shell-extension_gnome-radio_media-preferences-page-settings-row-notify-title';
         this.prefs.notify_title.connect('changed', Lang.bind(this, this._handle_widget_change));
         page.add(this.prefs.notify_title);
-        this.prefs.notify_error = new Switch('notify-error', this._settings.get_boolean('notify-error'), _("Notify error"), _("Display notification on player error"));
+        this.prefs.notify_error = new Switch('notify-error', this.settings.get_boolean('notify-error'), _("Notify error"), _("Display notification on player error"));
         this.prefs.notify_error.name = 'gnome-shell-extension_gnome-radio_media-preferences-page-settings-row-notify-error';
         this.prefs.notify_error.connect('changed', Lang.bind(this, this._handle_widget_change));
         page.add(this.prefs.notify_error);
         notebook.append_page(page, new Label({label: _("Settings")}));
 
         page = new Page({ name: 'gnome-shell-extension_gnome-radio_media-preferences-page-channels' });
-        page.add(new Label({label: _("Work in progress...")}));
+        this.list = new List();
+        page.add(this.list);
         notebook.append_page(page, new Label({label: _("Channels")}));
 
         page = new Page({ name: 'gnome-shell-extension_gnome-radio_media-preferences-page-about' });
@@ -133,7 +135,8 @@ const Frame = new GObject.Class({
      * @return {Void}
      */
     _handle_destroy: function(widget, event) {
-        this._settings.run_dispose();
+        this.list.save();
+        this.settings.run_dispose();
     },
 
     /**
@@ -163,7 +166,7 @@ const Frame = new GObject.Class({
      * @return {Void}
      */
     _handle_widget_change: function(widget, key, value, type) {
-        this._settings['set_' + type](key, value);
+        this.settings['set_' + type](key, value);
     },
 
 });
@@ -194,6 +197,112 @@ const Page = new GObject.Class({
         if (!('expand' in options)) o.expand = true;
 
         this.parent(o);
+    },
+
+});
+
+/**
+ * List constructor
+ * extends Gtk.TreeView
+ *
+ * @param  {Object}
+ * @return {Object}
+ */
+const List = new GObject.Class({
+
+    Name: 'Prefs.List',
+    GTypeName: 'List',
+    Extends: Gtk.TreeView,
+
+    /**
+     * Constructor
+     *
+     * @return {Void}
+     */
+    _init: function() {
+        store = new Gtk.TreeStore();
+        store.set_column_types([
+            GObject.TYPE_BOOLEAN,
+            GObject.TYPE_STRING,
+            GObject.TYPE_STRING,
+        ]);
+
+        this.parent({
+            model: store,
+            headers_visible: false,
+            reorderable: true,
+            hexpand: true,
+            vexpand: true
+        });
+
+        this._ui();
+        this.refresh();
+        this.refresh();
+    },
+
+    /**
+     * Create columns
+     *
+     * @return {Void}
+     */
+    _ui: function() {
+        let column = new Gtk.TreeViewColumn();
+        this.append_column(column);
+
+        let text = new Gtk.CellRendererText();
+        column.pack_start(text, true);
+        column.set_cell_data_func(text, Lang.bind(this, this._cell_render));
+    },
+
+    /**
+     * Cell render method
+     *
+     * @param  {Object} column
+     * @param  {Object} cell
+     * @param  {Object} model
+     * @param  {Object} iter
+     * @return {Void}
+     */
+    _cell_render: function(column, cell, model, iter) {
+        cell.editable = false;
+        cell.text = model.get_value(iter, 1);
+    },
+
+    /**
+     * Refresh treeview data
+     *
+     * @return {Void}
+     */
+    refresh: function() {
+        let data = Config.load();
+        let store = this.get_model();
+        store.clear();
+
+        try {
+            for (var i in data.categories) {
+                let category = data.categories[i];
+                let channels = category.channels;
+
+                let iter = store.append(null);
+                store.set(iter, [0,1,2], [false, category.title, '']);
+
+                for (var j in channels) {
+                    store.set(store.append(iter), [0,1,2], [true, channels[j].title || '', channels[j].url || '']);
+                }
+            }
+        }
+        catch(e) {
+            Lib.logError(e);
+        }
+    },
+
+    /**
+     * Save current treview to json file
+     *
+     * @return {Void}
+     */
+    save: function() {
+        // to do...
     },
 
 });
