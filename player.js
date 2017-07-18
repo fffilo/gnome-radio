@@ -375,7 +375,7 @@ const Player = new Lang.Class({
      * @return {Number}
      */
     get volume() {
-        return this.playbin.volume * 100;
+        return Math.round(this.playbin.volume * 100);
     },
 
     /**
@@ -386,6 +386,8 @@ const Player = new Lang.Class({
      */
     set volume(value) {
         let old_volume = this.volume;
+        if (value > 100) value = 100;
+        else if (value < 0) value = 0;
         this.playbin.volume = value / 100;
 
         if (old_volume === this.volume)

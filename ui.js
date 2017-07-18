@@ -6,6 +6,8 @@
 // import modules
 const Lang = imports.lang;
 const Signals = imports.signals;
+const Clutter = imports.gi.Clutter;
+const GLib = imports.gi.GLib;
 const St = imports.gi.St;
 const Main = imports.ui.main;
 const PanelMenu = imports.ui.panelMenu;
@@ -113,6 +115,7 @@ const Indicator = new Lang.Class({
         this.actor.add_actor(this.icon);
 
         this.media = new MediaMenu(this);
+        this.media.connect('scroll', Lang.bind(this, this._handle_menu_item_volume));
         this.media.connect('click', Lang.bind(this, this._handle_menu_item_media));
 
         this.channel = new ChannelMenu(this);
@@ -143,6 +146,18 @@ const Indicator = new Lang.Class({
     },
 
     /**
+     * Clear media volume interval
+     *
+     * @return {Void}
+     */
+    _clear_media_volume_interval: function() {
+        if (this._media_volume_interval)
+            GLib.source_remove(this._media_volume_interval);
+
+        this._media_volume_interval = null;
+    },
+
+    /**
      * Handle settings volume changed
      *
      * @param  {Object} settings
@@ -164,6 +179,7 @@ const Indicator = new Lang.Class({
      * @return {Void}
      */
     _handle_player_buffering: function(widget, event) {
+        this._clear_media_volume_interval();
         this.media.state = _("BUFFERING") + ' ' + event.percent + '%';
     },
 
@@ -200,7 +216,7 @@ const Indicator = new Lang.Class({
      * @return {Void}
      */
     _handle_player_volume: function(widget, event) {
-        // pass
+        this.settings.set_int('volume', event.value);
     },
 
     /**
@@ -211,12 +227,14 @@ const Indicator = new Lang.Class({
      * @return {Void}
      */
     _handle_player_state_changed: function(widget, event) {
+        this._clear_media_volume_interval();
+
         this.icon.icon_name = Icons[event.str];
         this.media.state = event.str;
         this.media.button = event.state <= Player.State.STOPPED ? 'start' : 'stop';
 
         if (event.state <= Player.State.STOPPED)
-            this.media = '...';
+            this.media.tags = '...';
     },
 
     /**
@@ -231,6 +249,41 @@ const Indicator = new Lang.Class({
 
         if (this.settings.get_boolean('notify-title') && event.value)
             this.notification.show(this.media.title, this.media.tags);
+    },
+
+    /**
+     * Handle media menu mouse scroll:
+     * set new volume and display it on
+     * media.state for 0.5 seconds
+     *
+     * @param  {Object} widget
+     * @param  {Object} event
+     * @return {Void}
+     */
+    _handle_menu_item_volume: function(widget, event) {
+        this.player.volume -= event.delta;
+
+        // cancel
+        if (this._media_volume_interval)
+            this._clear_media_volume_interval();
+
+        // remember state
+        else
+            this._media_volume_state = this.media.state;
+
+        // set interval
+        this._media_volume_interval = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, Lang.bind(this, function() {
+            this.media.state = this._media_volume_state;
+
+            this._media_volume_interval = null;
+            this._media_volume_state = null;
+
+            // don't repeat
+            return false;
+        }), null);
+
+        // set state
+        this.media.state = _("VOLUME") + ' ' + Math.round(this.player.volume) + '%';
     },
 
     /**
@@ -261,6 +314,8 @@ const Indicator = new Lang.Class({
         });
 
         this.player.stop();
+
+        this._clear_media_volume_interval();
 
         this.media.title = event.title;
         this.media.tags = '...';
@@ -321,16 +376,16 @@ const MediaMenu = new Lang.Class({
         this.ui = {};
 
         this.actor.set_vertical(false);
+        this.actor.set_reactive(true);
         this.actor.set_name('gnome-shell-extension_gnome-radio_media-menu');
+        this.actor.connect('scroll-event', Lang.bind(this, this._handle_scroll));
 
         this.ui.button = new St.Button({
             name: 'gnome-shell-extension_gnome-radio_media-menu_button',
             style_class: 'system-menu-action',
             can_focus: true
         });
-        this.ui.button.connect('clicked', Lang.bind(this, function(widget, event) {
-            this._handle_button(widget, event);
-        }));
+        this.ui.button.connect('clicked', Lang.bind(this, this._handle_button));
         this.actor.add(this.ui.button);
 
         this.ui.icon = new St.Icon({
@@ -363,6 +418,24 @@ const MediaMenu = new Lang.Class({
             text: '...',
         });
         vbox.add(this.ui.tags);
+    },
+
+    /**
+     * Handle mouse scroll
+     *
+     * @param  {Object} widget
+     * @param  {Object} event
+     * @return {Void}
+     */
+    _handle_scroll: function(widget, event) {
+        let dir = event.get_scroll_direction();
+
+        if (dir === Clutter.ScrollDirection.UP)
+            this.emit('scroll', { delta: -1 });
+        else if (dir === Clutter.ScrollDirection.DOWN)
+            this.emit('scroll', { delta: 1 });
+        else
+            this.emit('scroll', { delta: event.get_scroll_delta()[1] });
     },
 
     /**
@@ -589,9 +662,7 @@ const ChannelMenu = new Lang.Class({
 
                     let subitem = new PopupMenu.PopupMenuItem(title);
                     subitem.url = url;
-                    subitem.connect('activate', Lang.bind(this, function(widget, event) {
-                        this._handle_menu_item(widget, event);
-                    }));
+                    subitem.connect('activate', Lang.bind(this, this._handle_menu_item));
                     item.menu.addMenuItem(subitem);
                 }
             }

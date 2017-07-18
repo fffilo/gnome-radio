@@ -57,6 +57,7 @@ const Frame = new GObject.Class({
 
         this._init_settings();
         this._init_ui();
+        this._bind();
     },
 
     /**
@@ -66,6 +67,7 @@ const Frame = new GObject.Class({
      */
     _init_settings: function() {
         this._settings = Convenience.getSettings();
+        this._settings.connect('changed', Lang.bind(this, this._handle_settings_changed));
     },
 
     /**
@@ -78,23 +80,23 @@ const Frame = new GObject.Class({
         css.load_from_path(Me.path + '/prefs.css');
         Gtk.StyleContext.add_provider_for_screen( Gdk.Screen.get_default(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION );
 
-        let page, widget;
-        let notebook = new Gtk.Notebook();
+        let page, notebook = new Gtk.Notebook();
         let ico = GdkPixbuf.Pixbuf.new_from_file_at_scale(Me.path + '/icons/gnome-shell-extension_gnome-radio_default-symbolic.svg', 64, 64, null);
 
+        this.prefs = {};
         page = new Page({ name: 'gnome-shell-extension_gnome-radio_media-preferences-page-settings' });
-        widget = new SpinButton('volume', this._settings.get_int('volume'), _("Volume"), _("Adjust player volume"));
-        widget.name = 'gnome-shell-extension_gnome-radio_media-preferences-page-settings-row-volume';
-        widget.connect('changed', Lang.bind(this, this._handle_change));
-        page.add(widget);
-        widget = new Switch('notify-title', this._settings.get_boolean('notify-title'), _("Notify title change"), _("Display notification on player title change"));
-        widget.name = 'gnome-shell-extension_gnome-radio_media-preferences-page-settings-row-notify-title';
-        widget.connect('changed', Lang.bind(this, this._handle_change));
-        page.add(widget);
-        widget = new Switch('notify-error', this._settings.get_boolean('notify-error'), _("Notify error"), _("Display notification on player error"));
-        widget.name = 'gnome-shell-extension_gnome-radio_media-preferences-page-settings-row-notify-error';
-        widget.connect('changed', Lang.bind(this, this._handle_change));
-        page.add(widget);
+        this.prefs.volume = new SpinButton('volume', this._settings.get_int('volume'), _("Volume"), _("Adjust player volume"));
+        this.prefs.volume.name = 'gnome-shell-extension_gnome-radio_media-preferences-page-settings-row-volume';
+        this.prefs.volume.connect('changed', Lang.bind(this, this._handle_widget_change));
+        page.add(this.prefs.volume);
+        this.prefs.notify_title = new Switch('notify-title', this._settings.get_boolean('notify-title'), _("Notify title change"), _("Display notification on player title change"));
+        this.prefs.notify_title.name = 'gnome-shell-extension_gnome-radio_media-preferences-page-settings-row-notify-title';
+        this.prefs.notify_title.connect('changed', Lang.bind(this, this._handle_widget_change));
+        page.add(this.prefs.notify_title);
+        this.prefs.notify_error = new Switch('notify-error', this._settings.get_boolean('notify-error'), _("Notify error"), _("Display notification on player error"));
+        this.prefs.notify_error.name = 'gnome-shell-extension_gnome-radio_media-preferences-page-settings-row-notify-error';
+        this.prefs.notify_error.connect('changed', Lang.bind(this, this._handle_widget_change));
+        page.add(this.prefs.notify_error);
         notebook.append_page(page, new Label({label: _("Settings")}));
 
         page = new Page({ name: 'gnome-shell-extension_gnome-radio_media-preferences-page-channels' });
@@ -115,6 +117,43 @@ const Frame = new GObject.Class({
     },
 
     /**
+     * Bind events
+     *
+     * @return {Void}
+     */
+    _bind: function() {
+        this.connect('destroy', Lang.bind(this, this._handle_destroy));
+    },
+
+    /**
+     * Widget destroy event handler
+     *
+     * @param  {Object} widget
+     * @param  {Object} event
+     * @return {Void}
+     */
+    _handle_destroy: function(widget, event) {
+        this._settings.run_dispose();
+    },
+
+    /**
+     * Settings changed event handler
+     *
+     * @param  {Object} settings
+     * @param  {String} key
+     * @return {Void}
+     */
+    _handle_settings_changed: function(settings, key) {
+        let value = settings.get_value(key);
+        let method, type = value.get_type_string();
+        if (type === 'i') method = 'get_int';
+        else if (type === 'b') method = 'get_boolean';
+
+        if (method && this.prefs[key])
+            this.prefs[key].value = settings[method](key);
+    },
+
+    /**
      * Widget change event handler
      *
      * @param  {Object} widget
@@ -123,7 +162,7 @@ const Frame = new GObject.Class({
      * @param  {String} type
      * @return {Void}
      */
-    _handle_change: function(widget, key, value, type) {
+    _handle_widget_change: function(widget, key, value, type) {
         this._settings['set_' + type](key, value);
     },
 
@@ -223,6 +262,25 @@ const Widget = new GObject.Class({
     },
 
     /**
+     * Value getter
+     *
+     * @return {Boolean}
+     */
+    get value() {
+        return this._widget.value;
+    },
+
+    /**
+     * Value setter
+     *
+     * @param  {Mixed} value
+     * @return {Void}
+     */
+    set value(value) {
+        this._widget.value = value;
+    },
+
+    /**
      * Widget change event handler
      *
      * @param  {Object} widget
@@ -270,6 +328,25 @@ const Switch = new GObject.Class({
      */
     _handle_change: function(widget) {
         this.emit('changed', this._key, widget.active, 'boolean');
+    },
+
+    /**
+     * Value getter
+     *
+     * @return {Boolean}
+     */
+    get value() {
+        return this._widget.active;
+    },
+
+    /**
+     * Value setter
+     *
+     * @param  {Boolean} value
+     * @return {Void}
+     */
+    set value(value) {
+        this._widget.active = value;
     },
 
 });
