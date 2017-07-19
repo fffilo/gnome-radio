@@ -166,7 +166,10 @@ const Frame = new GObject.Class({
      * @return {Void}
      */
     _handle_widget_change: function(widget, key, value, type) {
-        this.settings['set_' + type](key, value);
+        let old_value = this.settings['get_' + type](key);
+
+        if (old_value != value)
+            this.settings['set_' + type](key, value);
     },
 
 });
