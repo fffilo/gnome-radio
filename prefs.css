@@ -4,5 +4,6 @@ PrefsInput { padding: 0.5em; }
 
 .page { padding: 2em; }
 .page.page_channels .buttons { padding-left: 2em; }
+.page.page_channels .buttons .separator { padding: 0.5em; }
 .page.page_about .title { padding-bottom: 1em; font-weight: bold; }
 .page.page_about .description { padding: 1em; }

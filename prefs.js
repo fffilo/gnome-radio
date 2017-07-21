@@ -143,7 +143,7 @@ const Widget = new GObject.Class({
         let scroll = new Scroll();
         this.ui.channels.treeview = new Channels();
         let select = this.ui.channels.treeview.get_selection();
-        select.connect('changed', Lang.bind(this, this._handle_channel_selection_changed));
+        select.connect('changed', Lang.bind(this, this._handle_channel_treeview_selection_changed));
         scroll.actor.add(this.ui.channels.treeview);
         this.ui.channels.page.actor.add(scroll);
 
@@ -152,23 +152,35 @@ const Widget = new GObject.Class({
         this.ui.channels.page.actor.add(box);
 
         this.ui.channels.btnCategory = new Gtk.Button({ label: _("Add Category"), });
-        this.ui.channels.btnCategory.connect('clicked', Lang.bind(this, this._handle_add_category_button_click));
+        this.ui.channels.btnCategory.connect('clicked', Lang.bind(this, this._handle_channels_button_category_click));
         box.actor.add(this.ui.channels.btnCategory);
 
         this.ui.channels.btnChannel = new Gtk.Button({ label: _("Add Channel"), });
-        this.ui.channels.btnChannel.connect('clicked', Lang.bind(this, this._handle_add_channel_button_click));
+        this.ui.channels.btnChannel.connect('clicked', Lang.bind(this, this._handle_channels_button_channel_click));
         box.actor.add(this.ui.channels.btnChannel);
 
         this.ui.channels.btnEdit = new Gtk.Button({ label: _("Edit"), });
-        this.ui.channels.btnEdit.connect('clicked', Lang.bind(this, this._handle_edit_button_click));
+        this.ui.channels.btnEdit.connect('clicked', Lang.bind(this, this._handle_channels_button_edit_click));
         box.actor.add(this.ui.channels.btnEdit);
 
         this.ui.channels.btnRemove = new Gtk.Button({ label: _("Remove"), });
-        this.ui.channels.btnRemove.connect('clicked', Lang.bind(this, this._handle_remove_button_click));
+        this.ui.channels.btnRemove.connect('clicked', Lang.bind(this, this._handle_channels_button_remove_click));
         box.actor.add(this.ui.channels.btnRemove);
 
+        this.ui.channels.separator = new Box();
+        this.ui.channels.separator.get_style_context().add_class('separator');
+        box.actor.add(this.ui.channels.separator);
+
+        this.ui.channels.btnReorderUp = new Gtk.Button({ label: _("Up"), });
+        this.ui.channels.btnReorderUp.connect('clicked', Lang.bind(this, this._handle_channels_button_reorder_up_click));
+        box.actor.add(this.ui.channels.btnReorderUp);
+
+        this.ui.channels.btnReorderDown = new Gtk.Button({ label: _("Down"), });
+        this.ui.channels.btnReorderDown.connect('clicked', Lang.bind(this, this._handle_channels_button_reorder_down_click));
+        box.actor.add(this.ui.channels.btnReorderDown);
+
         this.ui.channels.treeview.refresh();
-        this._handle_channel_selection_changed(select);
+        this._handle_channel_treeview_selection_changed(select);
 
         return this.ui.channels.page;
     },
@@ -318,14 +330,18 @@ const Widget = new GObject.Class({
      * @param  {Object} widget
      * @return {Void}
      */
-    _handle_channel_selection_changed: function(widget) {
+    _handle_channel_treeview_selection_changed: function(widget) {
         let [any, model, iter] = widget.get_selected();
+        let prev = any ? model.iter_previous(iter.copy()) : false;
+        let next = any ? model.iter_next(iter.copy()) : false;
 
         // set button sensitivity (enable/disable) if selection exists
         this.ui.channels.btnCategory.set_sensitive(true);
         this.ui.channels.btnChannel.set_sensitive(any);
         this.ui.channels.btnEdit.set_sensitive(any);
         this.ui.channels.btnRemove.set_sensitive(any);
+        this.ui.channels.btnReorderUp.set_sensitive(prev);
+        this.ui.channels.btnReorderDown.set_sensitive(next);
     },
 
     /**
@@ -335,7 +351,7 @@ const Widget = new GObject.Class({
      * @param  {Object} event
      * @return {Void}
      */
-    _handle_add_category_button_click: function(widget, event) {
+    _handle_channels_button_category_click: function(widget, event) {
         let response = this._dialog_category('');
         if (!response)
             return;
@@ -356,7 +372,7 @@ const Widget = new GObject.Class({
      * @param  {Object} event
      * @return {Void}
      */
-    _handle_add_channel_button_click: function(widget, event) {
+    _handle_channels_button_channel_click: function(widget, event) {
         let treeview = this.ui.channels.treeview;
         let select = treeview.get_selection();
         let [any, model, iter] = select.get_selected();
@@ -395,9 +411,10 @@ const Widget = new GObject.Class({
      * @param  {Object} event
      * @return {Void}
      */
-    _handle_edit_button_click: function(widget, event) {
+    _handle_channels_button_edit_click: function(widget, event) {
         let treeview = this.ui.channels.treeview;
-        let [any, model, iter] = treeview.get_selection().get_selected();
+        let select = treeview.get_selection();
+        let [any, model, iter] = select.get_selected();
         if (!any)
             return;
 
@@ -430,9 +447,10 @@ const Widget = new GObject.Class({
      * @param  {Object} event
      * @return {Void}
      */
-    _handle_remove_button_click: function(widget, event) {
+    _handle_channels_button_remove_click: function(widget, event) {
         let treeview = this.ui.channels.treeview;
-        let [any, model, iter] = treeview.get_selection().get_selected();
+        let select = treeview.get_selection();
+        let [any, model, iter] = select.get_selected();
         if (!any)
             return;
 
@@ -450,6 +468,28 @@ const Widget = new GObject.Class({
         if (dialog.run())
             model.remove(iter);
         dialog.destroy();
+    },
+
+    /**
+     * OrderUp button click event handler
+     *
+     * @param  {Object} widget
+     * @param  {Object} event
+     * @return {Void}
+     */
+    _handle_channels_button_reorder_up_click: function(widget, event) {
+        this._handle_channel_treeview_selection_changed(this.ui.channels.treeview.selection_reorder_up());
+    },
+
+    /**
+     * OrderDown button click event handler
+     *
+     * @param  {Object} widget
+     * @param  {Object} event
+     * @return {Void}
+     */
+    _handle_channels_button_reorder_down_click: function(widget, event) {
+        this._handle_channel_treeview_selection_changed(this.ui.channels.treeview.selection_reorder_down());
     },
 
 });
@@ -766,6 +806,8 @@ const Channels = new GObject.Class({
      */
     _ui: function() {
         this.set_search_column(-1);
+        this.unset_rows_drag_source();
+        this.unset_rows_drag_dest();
 
         let column = new Gtk.TreeViewColumn();
         this.append_column(column);
@@ -787,6 +829,46 @@ const Channels = new GObject.Class({
     _cell_render: function(column, cell, model, iter) {
         cell.editable = false;
         cell.text = model.get_value(iter, 1);
+    },
+
+    /**
+     * Append selected row after next one
+     *
+     * @return {Object}
+     */
+    selection_reorder_down: function() {
+        let select = this.get_selection();
+        let [any, model, iter] = select.get_selected();
+        if (!any)
+            return;
+
+        let item = iter.copy();
+        if (!model.iter_next(item))
+            return;
+
+        model.move_after(iter, item);
+
+        return select;
+    },
+
+    /**
+     * Append selected row before previous one
+     *
+     * @return {Object}
+     */
+    selection_reorder_up: function() {
+        let select = this.get_selection();
+        let [any, model, iter] = select.get_selected();
+        if (!any)
+            return;
+
+        let item = iter.copy();
+        if (!model.iter_previous(item))
+            return;
+
+        model.move_before(iter, item);
+
+        return select;
     },
 
     /**
