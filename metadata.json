@@ -1,6 +1,6 @@
 {
     "url": "https://github.com/fffilo/gnome-radio",
-    "description": "Listen to an internet radio stream",
+    "description": "Inspired by <a href=\"http://radiotray.sourceforge.net/\">radiotray</a>, <b>GNOME Radio</b> is online radio streaming player with minimum interface possible, making it very straightforward to use. Supports most media formats (based on <a href=\"https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gstreamer-libs/html/gstreamer-libs.html\">gstreamer libraries</a>) and ASF, ASX, M3U, PLS, RAM playlist formats.",
     "email": "fffilo666@gmail.com",
     "gettext-domain": "gnome-radio",
     "license": "GPL",
