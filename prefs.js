@@ -765,6 +765,8 @@ const Channels = new GObject.Class({
      * @return {Void}
      */
     _ui: function() {
+        this.set_search_column(-1);
+
         let column = new Gtk.TreeViewColumn();
         this.append_column(column);
 
